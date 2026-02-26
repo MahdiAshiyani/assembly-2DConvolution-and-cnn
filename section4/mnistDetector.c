@@ -261,44 +261,117 @@ int predict_mnist_avx(float image[28][28]) {
 }
 
 int main() {
-    const char* img_path = "test_image.png"; 
+    // تعداد دفعات اجرای الگوریتم برای هر عکس جهت دقت بالای زمان‌سنجی
+    #define BENCHMARK_ITERATIONS 1000
+    
+    char img_path[256];
     float input_image[28][28];
     
-    printf("Loading image: %s ...\n", img_path);
-    load_and_preprocess_image(img_path, input_image);
+    // متغیرهایی برای نگهداری زمان کل اجرای همه عکس‌ها
+    double total_time_naive = 0.0;
+    double total_time_avx = 0.0;
+    int total_images = 10;
 
-    // زمان‌گیری از نسخه معمولی برای اینکه در ابعاد ثاینه باشد باید چنیدین با احراش کنیم با آزمون خطا اردر 10000 براش خوبه
-    printf("Running Naive Implementation (10,000 runs)...\n");
-    clock_t start_naive = clock();
-    int pred_naive = 0;
-    for(int i=0; i<10000; i++) {
-        pred_naive = predict_mnist_naive(input_image);
-    }
-    clock_t end_naive = clock();
-    double time_naive = (double)(end_naive - start_naive) / CLOCKS_PER_SEC;
-
-    // زمان‌گیری از نسخه AVX2
-    printf("Running AVX2 Implementation (10,000 runs)...\n");
-    clock_t start_avx = clock();
-    int pred_avx = 0;
-    for(int i=0; i<10000; i++) {
-        pred_avx = predict_mnist_avx(input_image);
-    }
-    clock_t end_avx = clock();
-    double time_avx = (double)(end_avx - start_avx) / CLOCKS_PER_SEC;
-
-    // نمایش گزارش عملکرد
-    printf("\n================ RESULTS ================\n");
-    printf("Prediction (Naive): %d\n", pred_naive);
-    printf("Prediction (AVX2) : %d\n", pred_avx);
-    printf("-----------------------------------------\n");
-    printf("Time Naive : %.4f seconds\n", time_naive);
-    printf("Time AVX2  : %.4f seconds\n", time_avx);
+    printf("========================================================================\n");
+    printf("                  MNIST DIGIT RECOGNITION BENCHMARK                     \n");
+    printf("========================================================================\n");
     
-    if (time_avx > 0) {
-        printf("Speedup    : %.2fx faster!\n", time_naive / time_avx); // محاسبه میزان افزایش سرعت
+    // حلقه برای خواندن عکس‌های image_1.png تا image_10.png
+    for (int i = 1; i <= total_images; i++) {
+        // ساخت آدرس داینامیک برای هر عکس
+        snprintf(img_path, sizeof(img_path), "dataset/image_%d.png", i);
+        
+        // بارگذاری و پیش‌پردازش عکس
+        // در صورت پیدا نشدن عکس، تابع load_and_preprocess_image برنامه را متوقف میکند
+        load_and_preprocess_image(img_path, input_image);
+
+
+        // پردازش و زمان‌سنجی نسخه معمولی C
+        clock_t start_naive = clock();
+        int pred_naive = 0;
+        for(int iter = 0; iter < BENCHMARK_ITERATIONS; iter++) {
+            pred_naive = predict_mnist_naive(input_image);
+        }
+        clock_t end_naive = clock();
+        double time_naive = (double)(end_naive - start_naive) / CLOCKS_PER_SEC;
+        total_time_naive += time_naive;
+
+        // پردازش و زمان‌سنجی نسخه بهینه شده (AVX2)
+        clock_t start_avx = clock();
+        int pred_avx = 0;
+        for(int iter = 0; iter < BENCHMARK_ITERATIONS; iter++) {
+            pred_avx = predict_mnist_avx(input_image);
+        }
+        clock_t end_avx = clock();
+        double time_avx = (double)(end_avx - start_avx) / CLOCKS_PER_SEC;
+        total_time_avx += time_avx;
+
+        // چاپ گزارش برای عکس فعلی در خطوط مجزا
+        printf("File: %s\n", img_path);
+        printf("  -> Prediction (Naive C) : %d\n", pred_naive);
+        printf("  -> Prediction (AVX2)    : %d\n", pred_avx);
+        printf("  -> Time C (10k runs)    : %.4f seconds\n", time_naive);
+        printf("  -> Time AVX (10k runs)  : %.4f seconds\n", time_avx);
+        printf("------------------------------------------------------------------------\n");
     }
-    printf("=========================================\n");
+
+
+    // گزارش آماری و نهایی در پایان اجرای تمام عکس‌ها
+    printf("\n==================== FINAL STATISTICAL REPORT ====================\n");
+    printf("Total Images Processed : %d\n", total_images);
+    printf("Total Time Naive C     : %.4f seconds\n", total_time_naive);
+    printf("Total Time AVX2        : %.4f seconds\n", total_time_avx);
+    
+    // فرمول محاسبه تسریع: Speedup = Time_C / Time_AVX2
+    if (total_time_avx > 0) {
+        double average_speedup = total_time_naive / total_time_avx;
+        printf("Overall Speedup        : %.2f X Faster!\n", average_speedup);
+    }
+    printf("==================================================================\n");
 
     return 0;
 }
+
+
+// int main() {
+//     const char* img_path = "test_image.png"; 
+//     float input_image[28][28];
+    
+//     printf("Loading image: %s ...\n", img_path);
+//     load_and_preprocess_image(img_path, input_image);
+
+//     // زمان‌گیری از نسخه معمولی برای اینکه در ابعاد ثاینه باشد باید چنیدین با احراش کنیم با آزمون خطا اردر 10000 براش خوبه
+//     printf("Running Naive Implementation (10,000 runs)...\n");
+//     clock_t start_naive = clock();
+//     int pred_naive = 0;
+//     for(int i=0; i<10000; i++) {
+//         pred_naive = predict_mnist_naive(input_image);
+//     }
+//     clock_t end_naive = clock();
+//     double time_naive = (double)(end_naive - start_naive) / CLOCKS_PER_SEC;
+
+//     // زمان‌گیری از نسخه AVX2
+//     printf("Running AVX2 Implementation (10,000 runs)...\n");
+//     clock_t start_avx = clock();
+//     int pred_avx = 0;
+//     for(int i=0; i<10000; i++) {
+//         pred_avx = predict_mnist_avx(input_image);
+//     }
+//     clock_t end_avx = clock();
+//     double time_avx = (double)(end_avx - start_avx) / CLOCKS_PER_SEC;
+
+//     // نمایش گزارش عملکرد
+//     printf("\n================ RESULTS ================\n");
+//     printf("Prediction (Naive): %d\n", pred_naive);
+//     printf("Prediction (AVX2) : %d\n", pred_avx);
+//     printf("-----------------------------------------\n");
+//     printf("Time Naive : %.4f seconds\n", time_naive);
+//     printf("Time AVX2  : %.4f seconds\n", time_avx);
+    
+//     if (time_avx > 0) {
+//         printf("Speedup    : %.2fx faster!\n", time_naive / time_avx); // محاسبه میزان افزایش سرعت
+//     }
+//     printf("=========================================\n");
+
+//     return 0;
+// }

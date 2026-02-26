@@ -235,7 +235,7 @@ int main() {
     float* base_kernel = create_kernel_from_image("apple_template.ppm", &base_w, &base_h);
     float threshold = 80.0f; // چون اومدم و اندازه و scale کرنل رو به همان نسبت بزرگ و کوچیک کردم برای جلوگیری از خطاهای احتمالی این استانه تطابق رو روی 80 میگذاریم
 
-    int total_images = 20;           // کل تعداد عکس‌های موجود در دیتاست
+    int total_images = 4;           // کل تعداد عکس‌های موجود در دیتاست
     int successful_detections = 0;   // شمارنده تعداد عکس‌هایی که الگو در آن‌ها یافت شد
     double total_c_time_all = 0;     // مجموع زمان اجرای تمام عکس‌ها با الگوریتم C
     double total_avx_time_all = 0;   // مجموع زمان اجرای تمام عکس‌ها با الگوریتم AVX2
